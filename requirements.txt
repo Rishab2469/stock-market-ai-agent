@@ -1,0 +1,13 @@
+flask
+requests
+pandas
+numpy
+yfinance
+newsapi-python
+textblob
+python-dotenv
+beautifulsoup4
+lxml
+plotly
+setuptools
+wheel

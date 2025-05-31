@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indian Stock News Analysis Agent - NSE/BSE</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="fas fa-chart-line"></i> Indian Stock Analysis Agent (NSE/BSE)
+            </span>
+            <button class="btn btn-outline-light" onclick="refreshData()">
+                <i class="fas fa-sync-alt"></i> Refresh Data
+            </button>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Loading indicator -->
+        <div id="loading" class="text-center" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Analyzing Indian stocks (NSE/BSE) and news sentiment...</p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="row mb-4" id="stats-row">
+            <div class="col-md-2">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-arrow-up"></i> Buy</h5>
+                        <h2 id="buy-count">-</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-warning text-dark">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-pause"></i> Hold</h5>
+                        <h2 id="hold-count">-</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-danger text-white">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-arrow-down"></i> Sell</h5>
+                        <h2 id="sell-count">-</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-chart-bar"></i> Sentiment</h5>
+                        <h2 id="avg-sentiment">-</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-building"></i> Sectors</h5>
+                        <h2 id="total-sectors">-</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-secondary text-white">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-chart-line"></i> Stocks</h5>
+                        <h2 id="total-stocks">-</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sector Selection -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-industry"></i> Sector Analysis</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="sector-buttons">
+                            <!-- Sector buttons will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-pie"></i> Sentiment Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="sentiment-chart"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-bar"></i> Recommendation Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="recommendation-chart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sector Comparison Heatmap -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-trophy"></i> Sector Performance Ranking</h5>
+                        <small class="text-muted">Best to worst performing sectors - Click to filter recommendations</small>
+                    </div>
+                    <div class="card-body">
+                        <!-- Legend -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <div class="d-flex flex-wrap gap-2 justify-content-center">
+                                    <span class="badge" style="background-color: #16a34a;">🚀 Strong Buy (70-100)</span>
+                                    <span class="badge" style="background-color: #22c55e;">📈 Buy (60-69)</span>
+                                    <span class="badge" style="background-color: #84cc16;">👍 Moderate Buy (50-59)</span>
+                                    <span class="badge" style="background-color: #eab308;">⚖️ Hold (40-49)</span>
+                                    <span class="badge" style="background-color: #f97316;">👎 Moderate Sell (30-39)</span>
+                                    <span class="badge" style="background-color: #dc2626;">📉 Sell (0-29)</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Heatmap -->
+                        <div id="sectorComparisonHeatmap" class="row g-2">
+                            <div class="col-12 text-center text-muted">
+                                <i class="fas fa-spinner fa-spin"></i> Loading sector comparison...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sector Heatmap -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-fire"></i> Sector Heatmap - Bullish/Bearish Analysis</h5>
+                        <small class="text-muted">Click on sectors to filter recommendations below</small>
+                    </div>
+                    <div class="card-body">
+                        <div id="sectorHeatmap" class="row g-2">
+                            <!-- Heatmap will be populated by JavaScript -->
+                            <div class="col-12 text-center text-muted">
+                                <i class="fas fa-spinner fa-spin"></i> Loading sector heatmap...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommendations Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-table"></i> Stock Recommendations</h5>
+                        <div class="d-flex gap-2">
+                            <select id="filter-sector" class="form-select form-select-sm" onchange="filterTable()">
+                                <option value="">All Sectors</option>
+                                <!-- Sector options will be loaded here -->
+                            </select>
+                            <select id="filter-recommendation" class="form-select form-select-sm" onchange="filterTable()">
+                                <option value="">All Recommendations</option>
+                                <option value="BUY">Buy Only</option>
+                                <option value="HOLD">Hold Only</option>
+                                <option value="SELL">Sell Only</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="recommendations-table">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Symbol</th>
+                                        <th>Price</th>
+                                        <th>Change %</th>
+                                        <th>Sector</th>
+                                        <th>Sentiment</th>
+                                        <th>Score</th>
+                                        <th>Recommendation</th>
+                                        <th>Confidence</th>
+                                        <th>Risk</th>
+                                        <th>Reasoning</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recommendations-tbody">
+                                    <tr>
+                                        <td colspan="10" class="text-center">Loading recommendations...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Last Updated -->
+        <div class="row mt-3">
+            <div class="col-12 text-center text-muted">
+                <small>Last updated: <span id="last-updated">-</span></small>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let allRecommendations = [];
+        let allSectors = [];
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            loadSectors();
+            loadSectorHeatmap();
+            loadSectorComparisonHeatmap();
+        });
+
+        function loadData(refresh = false) {
+            showLoading(true);
+
+            const url = refresh ? '/api/recommendations?refresh=true' : '/api/recommendations';
+
+            Promise.all([
+                fetch(url).then(r => r.json()),
+                fetch('/api/stats').then(r => r.json()),
+                fetch('/api/charts/sentiment-distribution').then(r => r.json()),
+                fetch('/api/charts/recommendation-distribution').then(r => r.json())
+            ]).then(([recommendations, stats, sentimentChart, recChart]) => {
+                if (recommendations.status === 'success') {
+                    allRecommendations = recommendations.data;
+                    updateTable(allRecommendations);
+                    updateLastUpdated(recommendations.last_updated);
+                }
+
+                if (stats.status === 'success') {
+                    updateStats(stats.stats);
+                }
+
+                if (sentimentChart.status === 'success') {
+                    Plotly.newPlot('sentiment-chart', sentimentChart.chart.data, sentimentChart.chart.layout);
+                }
+
+                if (recChart.status === 'success') {
+                    Plotly.newPlot('recommendation-chart', recChart.chart.data, recChart.chart.layout);
+                }
+
+                showLoading(false);
+            }).catch(error => {
+                console.error('Error loading data:', error);
+                showLoading(false);
+            });
+        }
+
+        function loadSectors() {
+            fetch('/api/sectors')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        allSectors = data.sectors;
+                        updateSectorButtons(data.sectors);
+                        updateSectorDropdown(data.sectors);
+                    }
+                })
+                .catch(error => console.error('Error loading sectors:', error));
+        }
+
+        function updateSectorButtons(sectors) {
+            const container = document.getElementById('sector-buttons');
+            container.innerHTML = '';
+
+            // Add "All" button
+            const allBtn = document.createElement('div');
+            allBtn.className = 'col-md-2 mb-2';
+            allBtn.innerHTML = `
+                <button class="btn btn-outline-primary btn-sm w-100 sector-btn active" onclick="filterBySector('')">
+                    <i class="fas fa-globe"></i> All Sectors
+                </button>
+            `;
+            container.appendChild(allBtn);
+
+            // Add sector buttons
+            sectors.forEach(sector => {
+                const btn = document.createElement('div');
+                btn.className = 'col-md-2 mb-2';
+                btn.innerHTML = `
+                    <button class="btn btn-outline-secondary btn-sm w-100 sector-btn" onclick="filterBySector('${sector.name}')">
+                        <i class="fas fa-building"></i> ${sector.display_name}
+                        <br><small>(${sector.stock_count})</small>
+                    </button>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        function updateSectorDropdown(sectors) {
+            const dropdown = document.getElementById('filter-sector');
+            dropdown.innerHTML = '<option value="">All Sectors</option>';
+
+            sectors.forEach(sector => {
+                const option = document.createElement('option');
+                option.value = sector.name;
+                option.textContent = `${sector.display_name} (${sector.stock_count})`;
+                dropdown.appendChild(option);
+            });
+        }
+
+        function filterBySector(sectorName) {
+            // Update active button
+            document.querySelectorAll('.sector-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update dropdown
+            document.getElementById('filter-sector').value = sectorName;
+
+            // Filter table
+            filterTable();
+        }
+
+        function updateStats(stats) {
+            document.getElementById('buy-count').textContent = stats.buy_recommendations;
+            document.getElementById('hold-count').textContent = stats.hold_recommendations;
+            document.getElementById('sell-count').textContent = stats.sell_recommendations;
+            document.getElementById('avg-sentiment').textContent = stats.avg_sentiment_score;
+            document.getElementById('total-sectors').textContent = stats.total_sectors || '-';
+            document.getElementById('total-stocks').textContent = stats.total_stocks;
+        }
+
+        function updateTable(data) {
+            const tbody = document.getElementById('recommendations-tbody');
+            tbody.innerHTML = '';
+
+            data.forEach(item => {
+                const row = document.createElement('tr');
+
+                const recommendationClass = item.recommendation === 'BUY' ? 'text-success' :
+                                          item.recommendation === 'SELL' ? 'text-danger' : 'text-warning';
+
+                const sentimentClass = item.sentiment === 'positive' ? 'text-success' :
+                                     item.sentiment === 'negative' ? 'text-danger' : 'text-warning';
+
+                row.innerHTML = `
+                    <td><strong>${item.symbol_display || item.symbol}</strong></td>
+                    <td>₹${item.current_price}</td>
+                    <td class="${item.price_change >= 0 ? 'text-success' : 'text-danger'}">
+                        ${item.price_change >= 0 ? '+' : ''}${item.price_change}%
+                    </td>
+                    <td><span class="badge bg-secondary">${item.sector}</span></td>
+                    <td class="${sentimentClass}">${item.sentiment}</td>
+                    <td>${item.composite_score}</td>
+                    <td class="${recommendationClass}"><strong>${item.recommendation}</strong></td>
+                    <td>${item.confidence}</td>
+                    <td class="${item.risk_level === 'High' ? 'text-danger' : item.risk_level === 'Medium' ? 'text-warning' : 'text-success'}">
+                        ${item.risk_level}
+                    </td>
+                    <td><small>${item.reasoning}</small></td>
+                `;
+
+                tbody.appendChild(row);
+            });
+        }
+
+        function filterTable() {
+            const sectorFilter = document.getElementById('filter-sector').value;
+            const recommendationFilter = document.getElementById('filter-recommendation').value;
+
+            let filteredData = allRecommendations;
+
+            // Filter by sector
+            if (sectorFilter) {
+                const sectorStocks = allSectors.find(s => s.name === sectorFilter)?.stocks || [];
+                filteredData = filteredData.filter(item => {
+                    const symbol = item.symbol_display || item.symbol.replace('.NS', '');
+                    return sectorStocks.includes(symbol);
+                });
+            }
+
+            // Filter by recommendation
+            if (recommendationFilter) {
+                filteredData = filteredData.filter(item => item.recommendation === recommendationFilter);
+            }
+
+            updateTable(filteredData);
+        }
+
+        function updateLastUpdated(timestamp) {
+            if (timestamp) {
+                const date = new Date(timestamp);
+                document.getElementById('last-updated').textContent = date.toLocaleString();
+            }
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+            document.getElementById('stats-row').style.display = show ? 'none' : 'flex';
+        }
+
+        function loadSectorHeatmap() {
+            fetch('/api/sector-heatmap')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        updateSectorHeatmap(data.sectors);
+                    } else {
+                        console.error('Error loading sector heatmap:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading sector heatmap:', error);
+                    document.getElementById('sectorHeatmap').innerHTML =
+                        '<div class="col-12 text-center text-danger">Error loading heatmap</div>';
+                });
+        }
+
+        function updateSectorHeatmap(sectors) {
+            const container = document.getElementById('sectorHeatmap');
+            container.innerHTML = '';
+
+            if (!sectors || sectors.length === 0) {
+                container.innerHTML = '<div class="col-12 text-center text-muted">No sector data available</div>';
+                return;
+            }
+
+            sectors.forEach(sector => {
+                const col = document.createElement('div');
+                col.className = 'col-lg-2 col-md-3 col-sm-4 col-6';
+
+                // Determine background color based on sentiment
+                let bgClass = 'bg-secondary';
+                let textClass = 'text-white';
+                let icon = '📊';
+
+                if (sector.sector_sentiment === 'bullish') {
+                    bgClass = 'bg-success';
+                    icon = '🔥';
+                } else if (sector.sector_sentiment === 'bearish') {
+                    bgClass = 'bg-danger';
+                    icon = '❄️';
+                } else {
+                    bgClass = 'bg-warning';
+                    textClass = 'text-dark';
+                    icon = '⚖️';
+                }
+
+                col.innerHTML = `
+                    <div class="card h-100 sector-heatmap-card ${bgClass} ${textClass}"
+                         style="cursor: pointer; transition: transform 0.2s;"
+                         onclick="filterBySectorFromHeatmap('${sector.sector}')"
+                         onmouseover="this.style.transform='scale(1.05)'"
+                         onmouseout="this.style.transform='scale(1)'">
+                        <div class="card-body p-2 text-center">
+                            <div class="fs-4 mb-1">${icon}</div>
+                            <h6 class="card-title mb-1" style="font-size: 0.8rem;">
+                                ${sector.display_name}
+                            </h6>
+                            <div class="mb-1">
+                                <strong>${sector.bullish_percentage}%</strong>
+                                <br><small>Bullish</small>
+                            </div>
+                            <div class="d-flex justify-content-between" style="font-size: 0.7rem;">
+                                <span class="badge bg-light text-dark">${sector.buy_count}B</span>
+                                <span class="badge bg-light text-dark">${sector.hold_count}H</span>
+                                <span class="badge bg-light text-dark">${sector.sell_count}S</span>
+                            </div>
+                            ${sector.top_stock.symbol ?
+                                `<div class="mt-1" style="font-size: 0.6rem;">
+                                    Top: ${sector.top_stock.symbol} (${sector.top_stock.score})
+                                </div>` : ''
+                            }
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(col);
+            });
+        }
+
+        function filterBySectorFromHeatmap(sectorName) {
+            // Update dropdown
+            document.getElementById('filter-sector').value = sectorName;
+
+            // Update active button (if sector buttons exist)
+            document.querySelectorAll('.sector-btn').forEach(btn => btn.classList.remove('active'));
+
+            // Filter table
+            filterTable();
+
+            // Scroll to table
+            document.getElementById('recommendations-table').scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+
+        function loadSectorComparisonHeatmap() {
+            fetch('/api/sector-comparison-heatmap')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        updateSectorComparisonHeatmap(data.sectors);
+                    } else {
+                        console.error('Error loading sector comparison:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading sector comparison:', error);
+                    document.getElementById('sectorComparisonHeatmap').innerHTML =
+                        '<div class="col-12 text-center text-danger">Error loading comparison heatmap</div>';
+                });
+        }
+
+        function updateSectorComparisonHeatmap(sectors) {
+            const container = document.getElementById('sectorComparisonHeatmap');
+            container.innerHTML = '';
+
+            if (!sectors || sectors.length === 0) {
+                container.innerHTML = '<div class="col-12 text-center text-muted">No sector data available</div>';
+                return;
+            }
+
+            sectors.forEach((sector, index) => {
+                const col = document.createElement('div');
+                col.className = 'col-lg-2 col-md-3 col-sm-4 col-6 mb-2';
+
+                // Create ranking badge
+                let rankBadge = '';
+                if (index === 0) rankBadge = '🥇';
+                else if (index === 1) rankBadge = '🥈';
+                else if (index === 2) rankBadge = '🥉';
+                else rankBadge = `#${index + 1}`;
+
+                col.innerHTML = `
+                    <div class="card h-100 sector-comparison-card"
+                         style="cursor: pointer; transition: all 0.3s; border: 2px solid ${sector.color}; background: linear-gradient(135deg, ${sector.color}15, ${sector.color}05);"
+                         onclick="filterBySectorFromHeatmap('${sector.sector}')"
+                         onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.15)'"
+                         onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">
+                        <div class="card-body p-3 text-center">
+                            <!-- Ranking Badge -->
+                            <div class="position-absolute top-0 start-0 m-2">
+                                <span class="badge bg-dark">${rankBadge}</span>
+                            </div>
+
+                            <!-- Sector Icon and Category -->
+                            <div class="fs-2 mb-2">${sector.icon}</div>
+
+                            <!-- Sector Name -->
+                            <h6 class="card-title mb-2" style="font-size: 0.9rem; font-weight: bold;">
+                                ${sector.display_name}
+                            </h6>
+
+                            <!-- Sector Strength Score -->
+                            <div class="mb-2">
+                                <div class="fs-4 fw-bold" style="color: ${sector.color};">
+                                    ${sector.sector_strength}
+                                </div>
+                                <small class="text-muted">Strength Score</small>
+                            </div>
+
+                            <!-- Category Label -->
+                            <div class="mb-2">
+                                <span class="badge" style="background-color: ${sector.color}; font-size: 0.7rem;">
+                                    ${sector.label}
+                                </span>
+                            </div>
+
+                            <!-- Key Metrics -->
+                            <div class="row text-center" style="font-size: 0.7rem;">
+                                <div class="col-4">
+                                    <div class="fw-bold">${sector.buy_count}</div>
+                                    <div class="text-muted">BUY</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="fw-bold">${sector.hold_count}</div>
+                                    <div class="text-muted">HOLD</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="fw-bold">${sector.sell_count}</div>
+                                    <div class="text-muted">SELL</div>
+                                </div>
+                            </div>
+
+                            <!-- Best Stock -->
+                            ${sector.best_stock.symbol ?
+                                `<div class="mt-2 pt-2 border-top" style="font-size: 0.65rem;">
+                                    <div class="text-muted">Top Stock:</div>
+                                    <div class="fw-bold">${sector.best_stock.symbol}</div>
+                                    <div class="text-muted">Score: ${sector.best_stock.score}</div>
+                                </div>` : ''
+                            }
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(col);
+            });
+        }
+
+        function refreshData() {
+            loadData(true);
+            loadSectorHeatmap();
+            loadSectorComparisonHeatmap();
+        }
+    </script>
+</body>
+</html>
