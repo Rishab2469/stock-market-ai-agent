@@ -17,7 +17,7 @@ An advanced AI-powered agent that combines **professional AI analysis with real-
 ### 📊 **Comprehensive Analysis**
 - **Technical Analysis**: RSI, volume, price momentum, moving averages
 - **Fundamental Screening**: Market cap, P/E ratio, beta, volatility
-- **Sector-wise Analysis**: 10 major Indian sectors with up to 25 stocks each
+- **Sector-wise Analysis**: 11 major Indian sectors including Defence with up to 25 stocks each
 - **Risk Assessment**: Multi-factor risk evaluation
 
 ### 🎯 **Interactive Web Dashboard**
@@ -30,8 +30,8 @@ An advanced AI-powered agent that combines **professional AI analysis with real-
 
 ### 1. **Clone the repository**
 ```bash
-git clone https://github.com/yourusername/my-sec-ai-agent.git
-cd my-sec-ai-agent
+git clone https://github.com/Rishab2469/stock-market-ai-agent.git
+cd stock-market-ai-agent
 ```
 
 ### 2. **Create virtual environment** (Recommended)

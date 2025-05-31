@@ -186,7 +186,7 @@ class Config:
     STOCK_SYMBOLS = list(dict.fromkeys(STOCK_SYMBOLS))
 
     # Risk management
-    MAX_RECOMMENDATIONS = 10   # Maximum number of buy recommendations
+    MAX_RECOMMENDATIONS = 11   # Maximum number of buy recommendations
     RISK_TOLERANCE = 'medium'  # low, medium, high
 
     # Web app settings

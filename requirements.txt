@@ -9,5 +9,7 @@ python-dotenv
 beautifulsoup4
 lxml
 plotly
+transformers
+torch
 setuptools
 wheel

@@ -509,7 +509,8 @@ def api_sector_comparison_heatmap():
             'FINANCE_NBFC': {'name': 'Finance & NBFC', 'icon': '💰', 'color': '#fd7e14'},
             'METALS_MINING': {'name': 'Metals & Mining', 'icon': '🏭', 'color': '#6c757d'},
             'INFRASTRUCTURE': {'name': 'Infrastructure', 'icon': '🏗️', 'color': '#20c997'},
-            'CEMENT': {'name': 'Cement', 'icon': '🧱', 'color': '#dc3545'}
+            'CEMENT': {'name': 'Cement', 'icon': '🧱', 'color': '#dc3545'},
+            'DEFENCE': {'name': 'Defence', 'icon': '🛡️', 'color': '#8b5cf6'}
         }
 
         # Generate simulated performance data
